@@ -30,19 +30,18 @@ jobs:
         run: curl -fsSL https://aka.ms/install-azd.sh | bash
 
       - name: Install Foundry extension
-        run: azd ext install microsoft.foundry
+        run: azd ext install microsoft.foundry --force
 
       - name: Login to azd
         run: azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider github --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
-      - name: Initialize azd project
+      - name: Deploy hosted agent to Foundry
         run: |
           azd init --no-prompt 2>/dev/null || true
-          azd env set AZURE_SUBSCRIPTION_ID ${{ secrets.AZURE_SUBSCRIPTION_ID }} 2>/dev/null || true
-          azd env set AZURE_LOCATION ${{ secrets.AZURE_LOCATION }} 2>/dev/null || true
-
-      - name: Deploy to Foundry Agent Service
-        run: azd up --no-prompt
+          azd ai agent deploy --name updated-hosted-agent \
+            --from-agent-manifest agent.manifest.yaml \
+            --project-endpoint ${{ secrets.AZURE_AI_FOUNDRY_ENDPOINT }} \
+            --no-prompt
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
