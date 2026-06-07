@@ -31,25 +31,28 @@ jobs:
       - name: Install azd
         run: curl -fsSL https://aka.ms/install-azd.sh | bash
 
-      - name: Install Foundry agent extension
-        run: azd extension install azure.ai.agents --force
-
       - name: Login to azd
         run: azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider github --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
-      - name: Scaffold project from starter template
+      - name: Scaffold and deploy hosted agent
         run: |
           mkdir deploy && cd deploy
           azd init -t Azure-Samples/azd-ai-starter-basic --no-prompt --location northcentralus
           azd env set AZURE_SUBSCRIPTION_ID ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Add agent definition and deploy
-        run: |
-          cd deploy
-          mkdir -p src/updated-hosted-agent
-          cp ../agent-src/main.py ../agent-src/Dockerfile ../agent-src/requirements.txt src/updated-hosted-agent/
-          cp ../agent-src/agent.yaml src/updated-hosted-agent/
-          cp ../agent-src/azure.yaml ./azure.yaml
+          # Use azd ai agent init to properly integrate the agent
+          azd ai agent init -m ../agent-src/agent.yaml --no-prompt
+
+          # Copy agent source files into the scaffolded src directory
+          AGENT_DIR=$(find src -maxdepth 1 -mindepth 1 -type d | head -1)
+          if [ -z "$AGENT_DIR" ]; then
+            AGENT_DIR="src/updated-hosted-agent"
+            mkdir -p "$AGENT_DIR"
+          fi
+          cp ../agent-src/main.py "$AGENT_DIR/"
+          cp ../agent-src/Dockerfile "$AGENT_DIR/"
+          cp ../agent-src/requirements.txt "$AGENT_DIR/"
+
           azd up --no-prompt
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
