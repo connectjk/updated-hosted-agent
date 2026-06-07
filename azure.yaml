@@ -1,3 +1,31 @@
-name: updated-hosted-agent
-metadata:
-  template: agent-framework-hosted
+requiredVersions:
+  extensions:
+    azure.ai.agents: latest
+services:
+  updated-hosted-agent:
+    project: src/updated-hosted-agent
+    host: azure.ai.agent
+    language: docker
+    docker:
+      remoteBuild: true
+    config:
+      container:
+        resources:
+          cpu: "0.25"
+          memory: 0.5Gi
+        scale:
+          maxReplicas: 3
+          minReplicas: 1
+      deployments:
+        - name: gpt-4o
+          model:
+            format: OpenAI
+            name: gpt-4o
+            version: "2025-03-01"
+          sku:
+            name: GlobalStandard
+            capacity: 10
+infra:
+  provider: bicep
+  path: ./infra
+  module: main

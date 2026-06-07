@@ -14,6 +14,8 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: agent-src
 
       - uses: actions/setup-python@v5
         with:
@@ -29,19 +31,26 @@ jobs:
       - name: Install azd
         run: curl -fsSL https://aka.ms/install-azd.sh | bash
 
-      - name: Install Foundry extension
-        run: azd ext install microsoft.foundry --force
+      - name: Install Foundry agent extension
+        run: azd extension install azure.ai.agents --force
 
       - name: Login to azd
         run: azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider github --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
-      - name: Deploy hosted agent to Foundry
+      - name: Scaffold project from starter template
         run: |
-          azd init --no-prompt 2>/dev/null || true
-          azd ai agent deploy --name updated-hosted-agent \
-            --from-agent-manifest agent.manifest.yaml \
-            --project-endpoint ${{ secrets.AZURE_AI_FOUNDRY_ENDPOINT }} \
-            --no-prompt
+          mkdir deploy && cd deploy
+          azd init -t Azure-Samples/azd-ai-starter-basic --no-prompt --location northcentralus
+          azd env set AZURE_SUBSCRIPTION_ID ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Add agent definition and deploy
+        run: |
+          cd deploy
+          mkdir -p src/updated-hosted-agent
+          cp ../agent-src/main.py ../agent-src/Dockerfile ../agent-src/requirements.txt src/updated-hosted-agent/
+          cp ../agent-src/agent.yaml src/updated-hosted-agent/
+          cp ../agent-src/azure.yaml ./azure.yaml
+          azd up --no-prompt
         env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+          AZURE_LOCATION: northcentralus
