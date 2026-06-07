@@ -1,0 +1,48 @@
+name: Deploy Hosted Agent to Foundry
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install azd
+        run: curl -fsSL https://aka.ms/install-azd.sh | bash
+
+      - name: Install Foundry extension
+        run: azd ext install microsoft.foundry
+
+      - name: Login to azd
+        run: azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider github --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Initialize azd project
+        run: |
+          azd init --no-prompt 2>/dev/null || true
+          azd env set AZURE_SUBSCRIPTION_ID ${{ secrets.AZURE_SUBSCRIPTION_ID }} 2>/dev/null || true
+          azd env set AZURE_LOCATION ${{ secrets.AZURE_LOCATION }} 2>/dev/null || true
+
+      - name: Deploy to Foundry Agent Service
+        run: azd up --no-prompt
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
