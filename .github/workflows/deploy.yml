@@ -41,7 +41,7 @@ jobs:
           azd env set AZURE_SUBSCRIPTION_ID ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
           # Use azd ai agent init to properly integrate the agent
-          azd ai agent init -m ../agent-src/agent.yaml --no-prompt
+          azd ai agent init -m https://github.com/connectjk/updated-hosted-agent/blob/main/agent.manifest.yaml --no-prompt
 
           # Copy agent source files into the scaffolded src directory
           AGENT_DIR=$(find src -maxdepth 1 -mindepth 1 -type d | head -1)
